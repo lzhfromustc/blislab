@@ -1,4 +1,8 @@
 #!/bin/bash
+
+# This file contains a SLURM script for you to (optionally) submit the job to the 
+#Texas Advanced Computing Center (TACC) machines if you have an account there
+
 #SBATCH -J bl_dgemm_job
 #SBATCH -o bl_dgemm_output-%j.txt
 #SBATCH -p gpu
