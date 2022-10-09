@@ -1,0 +1,3 @@
+[submodule "reflib/blis"]
+	path = reflib/blis
+	url = git@github.com:flame/blis.git

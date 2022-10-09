@@ -1,5 +1,5 @@
 #!/bin/bash
-export BLISLAB_DIR=/Users/ziheng/Desktop/courses/CSE260/PA1/blislab/step1
+export BLISLAB_DIR=/home/ziheng/playground/blislab/step1
 echo "BLISLAB_DIR = $BLISLAB_DIR"
 
 # Compiler Options (true: Intel compiler; false: GNU compilers)
@@ -16,7 +16,7 @@ echo "COMPILER_OPT_LEVEL = $COMPILER_OPT_LEVEL"
 
 # Manually set the BLAS path if BLIS_USE_BLAS=true and using GNU compiler.
 #export BLAS_DIR=/u/jianyu/lib/blis
-export BLAS_DIR=NONE
+export BLAS_DIR=/home/ziheng/playground/blislab/reflib
 echo "BLAS_DIR = $BLAS_DIR"
 
 # Parallel Options
