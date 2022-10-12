@@ -80,31 +80,40 @@ inline void packA_mcxkc_d(
 
 /*
  * --------------------------------------------------------------------------
+                Param:
+                        min( jb - j, DGEMM_NR ), // block3 size
+                        pb, // block2 size
+                        &XB[ pc ], // B at row pc (note this program is column-based)
+                        k, // B's total row, should be ldXB instead
+                        jc + j, // absolute column index
+                        &packB[ j * pb ] // packB at column j
  */
 
-inline void packB_kcxnc_d(
-        int    n,
-        int    k,
-        double *XB,
-        int    ldXB, // ldXB is the original k
-        int    offsetb,
-        double *packB
+inline void packB_kcxnc_d( 
+        int    n, // block3 size
+        int    k, // block2 size
+        double *XB, // B at row pc (note this program is column-based)
+        int    ldXB, // ldXB is the original k // B's total row
+        int    offsetb, // absolute column index
+        double *packB // packB at column j
         )
 {
     int    j, p; 
     double *b_pntr[ DGEMM_NR ];
 
-    for ( j = 0; j < n; j ++ ) {
-        b_pntr[ j ] = XB + ldXB * ( offsetb + j );
+    // after the following loop, b_pntr is normally from B(pc, offsetb) to B(pc, offsetb + NR)
+    for ( j = 0; j < n; j ++ ) { // n is normally NR, except the last block3
+        b_pntr[ j ] = XB + ldXB * ( offsetb + j ); 
     }
 
+    // QUESTION: why (offsetb + 0)?
     for ( j = n; j < DGEMM_NR; j ++ ) {
         b_pntr[ j ] = XB + ldXB * ( offsetb + 0 );
     }
 
-    for ( p = 0; p < k; p ++ ) {
+    for ( p = 0; p < k; p ++ ) { // k is normally KC
         for ( j = 0; j < DGEMM_NR; j ++ ) {
-            *packB ++ = *b_pntr[ j ] ++;
+            *packB ++ = *b_pntr[ j ] ++; // QUESTION: what's the second ++? To the next row in B?
         }
     }
 }
@@ -137,7 +146,7 @@ void bl_macro_kernel(
                 aux.b_next += DGEMM_NR * k;
             }
 
-            ( *bl_micro_kernel ) (
+            ( *bl_micro_kernel ) ( // this function is in step2/kernels/bl_dgemm_ukr.c   // don't look at step4
                     k,
                     &packA[ i * k ],
                     &packB[ j * k ],
@@ -184,21 +193,21 @@ void bl_dgemm(
 
     // Allocate packing buffers
     packA  = bl_malloc_aligned( DGEMM_KC, ( DGEMM_MC + 1 ) * bl_ic_nt, sizeof(double) );
-    packB  = bl_malloc_aligned( DGEMM_KC, ( DGEMM_NC + 1 )           , sizeof(double) );
+    packB  = bl_malloc_aligned( DGEMM_KC, ( DGEMM_NC + 1 )           , sizeof(double) ); // packB's size is a whole block2
 
-    for ( jc = 0; jc < n; jc += DGEMM_NC ) {                                       // 5-th loop around micro-kernel
-        jb = min( n - jc, DGEMM_NC );
-        for ( pc = 0; pc < k; pc += DGEMM_KC ) {                                   // 4-th loop around micro-kernel
-            pb = min( k - pc, DGEMM_KC );
+    for ( jc = 0; jc < n; jc += DGEMM_NC ) {               // C's column also B's column                         // 5-th loop around micro-kernel
+        jb = min( n - jc, DGEMM_NC ); // block1 size: normally NC, smaller for the last block
+        for ( pc = 0; pc < k; pc += DGEMM_KC ) {                // A's column also B's row                    // 4-th loop around micro-kernel
+            pb = min( k - pc, DGEMM_KC ); // block2 size: normally KC
 
-            for ( j = 0; j < jb; j += DGEMM_NR ) {
+            for ( j = 0; j < jb; j += DGEMM_NR ) { // B's column
                 packB_kcxnc_d(
-                        min( jb - j, DGEMM_NR ),
-                        pb,
-                        &XB[ pc ],
-                        k, // should be ldXB instead
-                        jc + j,
-                        &packB[ j * pb ]
+                        min( jb - j, DGEMM_NR ), // block3 size
+                        pb, // block2 size
+                        &XB[ pc ], // B at row pc (note this program is column-based)
+                        k, // B's total row, should be ldXB instead
+                        jc + j, // absolute column index
+                        &packB[ j * pb ] // packB at column j
                         );
             }
 
